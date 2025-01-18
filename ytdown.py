@@ -8,6 +8,10 @@ from tqdm import tqdm
 from requests import get
 from re import match
 from argparse import ArgumentParser
+from os import rename
+from re import compile
+
+from litdm import litdm
 
 global urls
 urls = list()
@@ -35,8 +39,9 @@ class handle_args():
         exit (1)
 
 class ytdown:
-    def __init__(self, url, _type, file_format="360", file_name:str=''):
+    def __init__(self, url, _type, file_format:str='', file_name:str=''):
         self.filename = file_name 
+        self.fileformat = "360" 
 
         if _type == "url":
             self.single_url(url, file_format)
@@ -52,15 +57,21 @@ class ytdown:
         converting url with conv_url() function 
         then show progress in progress bar to user
         """
-        compared_url = self.conv_url(url, file_format)
+
+        if self.is_link_valid(url):
+            try:
+                compared_url = self.conv_url(url, file_format)
+            except:
+                print("failed to create download link")
+                exit(1)
         
-        with tqdm(total=(100), ncols=100) as stat_bar:
+        with tqdm(total=(1000), ncols=100) as stat_bar:
             old_stat = 0
             while True: 
                 download_url = get(compared_url).json()
                 stat = download_url["progress"]
                 text = download_url["text"]
-                stat_bar.set_description("status : {}".format(text))
+                stat_bar.set_description("convert to direct link : {}".format(text))
                 
                 if download_url["success"] == 1:
                     stat_bar.total = stat_bar.n
@@ -73,20 +84,26 @@ class ytdown:
         pass
 
     def write_single_file(self, file_format, filename=''):
-        if file_format in ("360", "480", "720", "1080"):
+        if file_format in ("360", "480", "720", "1080") or not file_format:
             file_format = "mp4"
         if not filename:
             filename = self.filename
-
-        file_content = get(urls[0]).content
         filename = filename.replace(" ", "_")
-        with open(filename + "." + file_format, "wb") as file:
-            file.write(file_content)
+       
+        try:
+            downloading = litdm(url=urls[0], filename=filename)
+            downloading.start_threads()
+            rename(filename, (filename + "." + file_format))
+        except:
+            print("Download failed, no response from source")
+            exit(1)
 
     def conv_url(self, url, file_format):
         """
         convert youtube url to downloadable file link
         """
+        if not file_format:
+            file_format = self.fileformat
         if not file_format in ("360", "480", "720", "1080", "mp3", "m4a", "webm", "wav", "ogg", "flac", "opus"):
             print("wrong file format, you should pass one of valid formats to the -F option")
             print("valid formats: 360, 480, 720, 1080, mp3, m4a, webm, wav, ogg, flac, opus")
@@ -102,7 +119,7 @@ class ytdown:
         return compare_id_link
 
     def is_link_valid(self, link):
-        check = re.compile(r'^(https?://)?(www\.)?(youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/|youtube\.com/v/)([a-zA-Z0-9_-]{11})$')
+        check = compile(r'^(https?://)?(www\.)?(youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/|youtube\.com/v/)([a-zA-Z0-9_-]{11})$')
         return bool(check.match(link))
 
 if __name__ == "__main__":
