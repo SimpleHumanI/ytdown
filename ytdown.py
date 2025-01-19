@@ -10,6 +10,7 @@ from re import match
 from argparse import ArgumentParser
 from os import rename
 from re import compile
+from signal import signal, SIGINT
 
 from litdm import litdm
 
@@ -84,12 +85,20 @@ class ytdown:
         pass
 
     def write_single_file(self, file_format, filename=''):
+        quality = file_format
         if file_format in ("360", "480", "720", "1080") or not file_format:
             file_format = "mp4"
         if not filename:
             filename = self.filename
         filename = filename.replace(" ", "_")
-       
+
+        if file_format == "mp4":
+            if not quality:
+                quality = "360"
+            print(f"file format : mp4\nquality     : {quality}")
+        else:
+            print(f"file format : {file_format}")
+
         try:
             downloading = litdm(url=urls[0], filename=filename)
             downloading.start_threads()
@@ -123,6 +132,9 @@ class ytdown:
         return bool(check.match(link))
 
 if __name__ == "__main__":
+    signal_catch = lambda x,y : exit(1)
+    signal(SIGINT, signal_catch)
+
     arguments = handle_args()
 
     if arguments.no_arg_passed() or not arguments.argv.url:

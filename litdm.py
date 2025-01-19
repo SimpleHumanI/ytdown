@@ -169,8 +169,8 @@ class litdm:
             th_count -= 1
         
         hr_size = litdm.human_readable(filesize)
-        print("size      :", int(hr_size[0]), hr_size[1])
-        print("file name :", self.filename)
+        print("size        :", int(hr_size[0]), hr_size[1])
+        print("file name   :", self.filename)
         print()
 
         for i in range(len(each_thread)):
